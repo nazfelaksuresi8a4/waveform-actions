@@ -1,0 +1,40 @@
+import sounddevice as sd
+import soundfile as sf
+import numpy as np
+import matplotlib.pyplot as plt
+
+file = r"C:\Users\Elçin YILDIZ\Downloads\T12 12.1 Inch Patient Monitor (mp3cut.net).wav"
+data, sample_rate = sf.read(file)
+nchannels = data.shape[1] if len(data.shape) > 1 else 1
+n = len(data)
+
+def callback(outdata,frames,status,time):
+    if status:
+        print(status)
+    
+    start = callback.i
+    end = start + frames
+
+    if end > n:
+        stream.stop()
+        raise sd.CallbackStop()
+    
+    else:
+        outdata[:] = data[start:end]
+        print(outdata)
+    
+    callback.i += frames
+
+callback.i = 0
+
+stream = sd.OutputStream(
+    samplerate=sample_rate,
+    blocksize=1024,
+    channels=nchannels,
+    callback=callback,
+)
+
+stream.start()
+sd.sleep(int(n / sample_rate * 1000) + 1000) 
+stream.stop()
+stream.close()
