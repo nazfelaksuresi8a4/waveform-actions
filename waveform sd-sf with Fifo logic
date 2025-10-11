@@ -1,3 +1,5 @@
+#bu fonksiyonlar parçasında sd-sf-np-wv dörtlüsü kullanılılarak gerçek zamanlı veri döndürme / byte'ları ses olarak okumak için yapılmıştır
+
 import sounddevice as sd
 import soundfile as sf
 import numpy as np
@@ -20,7 +22,7 @@ def callback(outdata,frames,status,time):
         raise sd.CallbackStop()
     
     else:
-        outdata[:] = data[start:end]
+        outdata[:] = data[start:end]    #kritik bölge(durum: thread-safe değil veri dönen kısmı temsil ediyor**)
         print(outdata)
     
     callback.i += frames
