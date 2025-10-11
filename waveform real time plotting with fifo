@@ -1,0 +1,45 @@
+import numpy as np
+import sounddevice as sd
+import soundfile as sf
+import wave 
+import matplotlib.pyplot as plt
+from matplotlib.animation import Animation
+
+sound_path = r"C:\Users\Elçin YILDIZ\Downloads\T12 12.1 Inch Patient Monitor (mp3cut.net).wav"
+
+sound_data,sample_rate = sf.read(sound_path)
+sound_obj = wave.open(sound_path)
+
+nframes = sound_obj.getnframes()
+framerate = sound_obj.getframerate()
+nchannels = sound_obj.getnchannels()
+bytesf = sound_obj.readframes(nframes)
+
+buffer_array = np.frombuffer(bytesf ,dtype=np.int32)
+
+boolean = True
+n = nframes
+
+x_axis = np.linspace(0,len(buffer_array) / framerate, len(buffer_array))
+
+frames = 1000
+start = 0
+
+fig,ax = plt.subplots(1,1)
+
+x_array = []
+y_array = []
+
+for i in range(len(buffer_array)):
+
+    x_matrix = x_axis[start:start+frames]
+    y_matrix = buffer_array[start:start+frames]
+
+    ax.clear()
+    ax.plot(x_matrix,y_matrix)
+    
+    plt.pause(0.1)
+
+    start += frames
+
+    
