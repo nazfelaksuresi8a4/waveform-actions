@@ -1,0 +1,53 @@
+import wave 
+import sounddevice as sd
+import soundfile as sf
+import numpy as np
+import matplotlib.pyplot as plt
+
+frame = 1000
+index = 0
+file_name = r"C:\Users\Elçin YILDIZ\Downloads\Duman - Her Şeyi Yak-slowedandreverbstudio.wav" 
+
+plot_data1 = np.zeros(frame)
+plot_data2 = np.zeros(frame)
+
+plt.ion()
+fig,ax = plt.subplots(1,1)
+
+line1, = ax.plot(plot_data1)
+line2, = ax.plot(plot_data2)
+ax.set_ylim(-1,1)
+sound_matrix,framerate = sf.read(file_name)
+channels = wave.open(file_name).getnchannels()
+
+def callback(outdata,frames,status,time):
+    global index
+    global plot_data1
+    global plot_data2
+    if status:
+        print(status)
+    
+    end = frame + index
+
+    if end > len(sound_matrix):
+        duration = len(sound_matrix) - index
+        outdata[:duration] = sound_matrix[index:end]
+        outdata[duration:] = 0
+
+    else:
+        v = sound_matrix[index:end]
+        outdata[:] = v
+        plot_data1 = v[:,0]
+        plot_data2 = v[:,1]
+
+        index = end
+
+def fcb():
+    print('Finished')
+
+with sd.OutputStream(samplerate=framerate,blocksize=frame,channels=channels,callback=callback,finished_callback=fcb):
+    while index < len(sound_matrix):
+        line1.set_ydata(plot_data1)
+        line2.set_ydata(plot_data2)
+        plt.pause(0.01)
+        #time.sleep(0.001)  # opsiyonel, CPU kullanımını düşürür
