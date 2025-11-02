@@ -1,0 +1,94 @@
+from PyQt5.QtCore import*
+from PyQt5.QtWidgets import*
+from PyQt5.QtGui import*
+from threading import Thread
+import pyqtgraph as pg
+import numpy as np
+import sounddevice as sd
+import soundfile as sf
+import wave 
+import sys as _s
+
+class mainUİ(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.pg_window = pg.PlotWidget(background='red')
+        self.item = self.pg_window.getPlotItem()
+        
+
+        self.button = QPushButton(text='Başlat')
+
+        self.x_axis = None
+        self.y_axis = None
+
+        self.index = 0
+        self.frame = 1000
+
+        layout = QVBoxLayout()
+        widget = QWidget()
+        widget.setLayout(layout)
+
+        layout.addWidget(self.pg_window)
+        layout.addWidget(self.button)
+
+        #signal-slot
+        self.button.clicked.connect(self.igniter)
+
+        self.sound_matrix,self.framerate = sf.read(r"C:\Users\Elçin YILDIZ\Downloads\Duman - Her Şeyi Yak-slowedandreverbstudio.wav")
+        self.chanels = wave.open(r"C:\Users\Elçin YILDIZ\Downloads\Duman - Her Şeyi Yak-slowedandreverbstudio.wav").getnchannels()
+        self.curve = self.item.plot([],[])
+
+        #function-side
+
+        self.setCentralWidget(widget)
+        
+    def callback(self,outdata,frames,time,status):
+        if status:
+            print(status)
+        
+        end = self.index + frames
+
+        if end > len(self.sound_matrix):
+            duration = len(self.sound_matrix) - self.index
+            outdata[:duration] = self.sound_matrix[self.index:self.end]
+            outdata[duration:] = 0
+        
+        else:
+            out = outdata[:] = self.sound_matrix[self.index:end]
+            self.index = end
+
+            self.y_axis = out
+
+    def fcb(self):
+        print('Finished')
+    
+    def igniter(self):
+        #GIL Devreye girer eş zamanlılık göz yanılmasından ibaret olur
+        self.button.setEnabled(False)
+        
+        #timer-side
+        self.plot_timer = QTimer(self)
+        self.plot_timer.timeout.connect(self.plot)
+        self.plot_timer.start(10)
+
+        #thread-side
+        main_thread = Thread(target=self.t1)
+        main_thread.start()
+    
+    def plot(self):
+        self.x_axis = np.arange(0,10,len(self.sound_matrix))
+
+        self.curve.setData(self.y_axis)
+    
+    def t1(self):
+        with sd.OutputStream(samplerate=self.framerate,blocksize=self.frame,channels=self.chanels,callback=self.callback,finished_callback=self.fcb):
+            sd.sleep(int(len(self.sound_matrix) / self.framerate * 1000))
+
+        self.button.setEnabled(True)
+
+if __name__=="__main__":
+
+    sp = QApplication(_s.argv)
+    sw = mainUİ()
+    sw.show()
+    _s.exit(sp.exec_())
