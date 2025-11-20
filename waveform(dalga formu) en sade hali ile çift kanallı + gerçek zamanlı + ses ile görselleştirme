@@ -1,0 +1,64 @@
+import sounddevice as sd 
+import soundfile as sf 
+import wave 
+import matplotlib.pyplot as plt
+import numpy as np 
+
+c1 = np.zeros(1000)
+c2 = np.zeros(1000)
+
+filepath = r"ornek_waw_dosyasi"
+
+fig,ax = plt.subplots(1,1)
+ax.set_ylim(-1,1)
+
+line1, = ax.plot(c1)
+line2, = ax.plot(c2)
+
+file_obj = wave.open(filepath)
+
+nchannels = file_obj.getnchannels()
+nframes = file_obj.getnframes()
+
+buffermatrix,framerate = sf.read(filepath)
+
+dim_array = []
+
+index = 0
+frame = 1000
+
+def callback(outdata,frames,time,status):
+    global index
+    global c1
+    global c2
+
+    if status:
+        print(status) 
+    
+    end = index + frame
+    
+    outdata[:] = buffermatrix[index:end]
+
+    c1 = outdata[:,0]
+    c2 = outdata[:,1]
+
+    index = end
+
+
+def finished_callback():
+    print('finished')
+
+with sd.OutputStream(samplerate=framerate,
+                                blocksize=frame,
+                                channels=nchannels,
+                                callback=callback,
+                                finished_callback=finished_callback) as e:
+    while index != len(buffermatrix) - 2:
+        if c1 is not None and c2 is not None:
+            line1.set_ydata(c1)
+            line2.set_ydata(c2)
+
+            plt.pause(0.01)
+
+
+    
