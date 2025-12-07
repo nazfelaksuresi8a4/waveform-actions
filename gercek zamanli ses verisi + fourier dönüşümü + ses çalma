@@ -1,0 +1,59 @@
+#rootpath = C:\Users\alper\Desktop\Yakıt Hesaplama Programı\datasets
+
+import matplotlib.pyplot as plt
+import soundfile as sf 
+import sounddevice as sd 
+import numpy as np 
+import wave 
+
+playing = True
+start = 0 
+end = 0 
+framef = 1024
+
+c1m = None
+c2m = None
+
+file_obj = wave.open(r"derdimvar.wav")
+sound_matrix,framerate = sf.read(r"derdimvar.wav")
+
+channels = file_obj.getnchannels()
+nframes = file_obj.getnframes()
+
+fig,ax = plt.subplots(1,1,figsize=(5,4))
+line1, = ax.plot([],[])
+line2, = ax.plot([],[])
+
+def callback(outdata,time,status,frame):
+    global start,end,playing,sound_matrix,framef,c1m,c2m
+
+    if status:
+        pass
+    
+    if end == len(sound_matrix) - 1:
+        playing = False
+
+    if playing == True:
+        end = start + framef
+
+        outdata[:] = sound_matrix[start:end]
+
+        c1m = outdata[:,0]
+        c2m = outdata[:,1]
+
+        start = end
+    
+def finished_callback():
+    print('callback finished.')
+
+with sd.OutputStream(samplerate=framerate,
+                     blocksize=framef,
+                     channels=channels,
+                     callback=callback,
+                     finished_callback=finished_callback) as e:
+    e.start()
+    while playing:
+        if c1m is not None and c2m is not None:      
+            line1.set_data(np.fft.fftfreq(n=len(c2m),d=1),np.abs(np.fft.fft(c2m)))
+            line2.set_data(np.fft.fftfreq(n=len(c1m),d=1),np.abs(np.fft.fft(c1m)))
+            plt.pause(0.05)ma
