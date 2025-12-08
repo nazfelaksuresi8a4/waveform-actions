@@ -1,0 +1,66 @@
+import numpy as np 
+import matplotlib.pyplot as plt 
+import sounddevice as sd 
+
+flag = True
+n = 1024 
+frame = 256
+matrix_division = 2 
+
+new_matrix = []
+q = [0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1.0]
+
+# n = ((n * matrix_division)**matrix_division)
+sound_matrix = np.linspace(0,10,n).reshape(n // matrix_division,matrix_division)
+
+
+for i in range(100*4):
+    for data in sound_matrix:
+        new_matrix.extend(data)
+
+new_matrix = np.array(new_matrix).reshape(len(new_matrix) // matrix_division,matrix_division)
+
+start = 0 
+end = 0 
+
+current = None
+Q = 0
+
+def callback(outdata,time,status,frames):
+    global start,end,flag,sound_matrix,frame,current,new_matrix,q,Q
+
+    if status:
+        pass
+    
+    if Q == len(q) - 1:
+        Q = 0
+
+    if end >= len(new_matrix) - 1:
+        flag = False
+    
+    else:
+        end = start + frame
+
+        outdata[:] = new_matrix[start:end]
+        current = np.sin(outdata)
+
+        start = end
+    
+  
+
+fig,ax = plt.subplots(1,1)
+
+def finished_callback():
+    print('Callback finished')
+
+with sd.OutputStream(samplerate=44100,
+                     blocksize=frame,
+                     channels=2,
+                     callback=callback,
+                     finished_callback=finished_callback) as e:
+    e.start()
+    while flag == True and e.active == True:
+        if current is not None:
+            ax.clear()
+            ax.plot(current)
+            plt.pause(1)
